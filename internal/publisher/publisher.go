@@ -8,17 +8,18 @@ import (
 	"log"
 
 	amqp_go "github.com/GodwinJacobR/amqp-go"
+	"github.com/GodwinJacobR/amqp-go/internal/tracing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Publisher struct {
-	conn *amqp.Connection
-	ch   *amqp.Channel
-	q    amqp.Queue
+	conn  *amqp.Connection
+	ch    *amqp.Channel
+	queue amqp.Queue
 }
 
-func NewPublisher(amqpURL, queueName string) (*Publisher, error) {
-	conn, err := amqp.Dial(amqpURL)
+func NewPublisher(amqpUrl, queueName string) (*Publisher, error) {
+	conn, err := amqp.Dial(amqpUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +30,7 @@ func NewPublisher(amqpURL, queueName string) (*Publisher, error) {
 		return nil, err
 	}
 
-	q, err := ch.QueueDeclare(
+	queue, err := ch.QueueDeclare(
 		queueName, // name
 		false,     // durable
 		false,     // delete when unused
@@ -43,7 +44,7 @@ func NewPublisher(amqpURL, queueName string) (*Publisher, error) {
 		return nil, err
 	}
 
-	return &Publisher{conn: conn, ch: ch, q: q}, nil
+	return &Publisher{conn: conn, ch: ch, queue: queue}, nil
 }
 
 func (p *Publisher) Publish(ctx context.Context, exchange string, event amqp_go.Event) error {
@@ -51,15 +52,17 @@ func (p *Publisher) Publish(ctx context.Context, exchange string, event amqp_go.
 	if err != nil {
 		return fmt.Errorf("marshal message, err; %w", err)
 	}
+	headers := tracing.InjectToHeaders(ctx)
+	headers["correlation_id"] = event.Metadata.CorrelationID
 
 	err = p.ch.PublishWithContext(
 		ctx,
 		exchange,
-		p.q.Name, // routing key
-		false,    // mandatory
-		false,    // immediate
+		p.queue.Name, // routing key
+		false,        // mandatory
+		false,        // immediate
 		amqp.Publishing{
-			Headers:       amqp.Table{"correlation_id": event.Metadata.CorrelationID},
+			Headers:       headers,
 			ContentType:   "application/json",
 			CorrelationId: event.Metadata.CorrelationID,
 			MessageId:     event.Metadata.ID,
