@@ -1,17 +1,20 @@
 package amqppublisher
 
 import (
+	"context"
+
+	amqp_go "github.com/GodwinJacobR/amqp-go"
 	amqp_publisher "github.com/GodwinJacobR/amqp-go/internal/publisher"
 )
 
 type publisher interface {
-	Publish(exchange string, payload interface{}) error
+	Publish(exchange string, payload amqp_go.Event) error
 	Close() error
 }
 
 // Publisher represents a RabbitMQ publisher
 type Publisher struct {
-	publisher publisher
+	inner publisher
 }
 
 // NewPublisher creates a new Publisher instance
@@ -23,18 +26,19 @@ func NewPublisher(amqpURL, queueName string) (*Publisher, error) {
 	}
 
 	return &Publisher{
-		publisher: p,
+		inner: p,
 	}, nil
 }
 
 // Publish sends a message to the RabbitMQ queue
-func (p *Publisher) Publish(exchange string, payload interface{}) error {
+func (p *Publisher) Publish(ctx context.Context, exchange, eventName string, payload any, opts ...amqp_go.EventOption) error {
+	event := amqp_go.NewEvent(ctx, payload, eventName, opts...)
 
-	return p.publisher.Publish(exchange, payload)
+	return p.inner.Publish(exchange, event)
 	// TODO move this to internal
 }
 
 // Close cleans up the RabbitMQ connection and channel
 func (p *Publisher) Close() error {
-	return p.publisher.Close()
+	return p.inner.Close()
 }

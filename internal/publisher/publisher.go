@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/streadway/amqp"
+	amqp_go "github.com/GodwinJacobR/amqp-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Publisher struct {
@@ -44,10 +45,8 @@ func NewPublisher(amqpURL, queueName string) (*Publisher, error) {
 	return &Publisher{conn: conn, ch: ch, q: q}, nil
 }
 
-func (p *Publisher) Publish(exchange string, payload interface{}) error {
-
-	// TODO move this to internal
-	body, err := json.Marshal(payload)
+func (p *Publisher) Publish(exchange string, event amqp_go.Event) error {
+	body, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("marshal message, err; %w", err)
 	}
@@ -60,6 +59,9 @@ func (p *Publisher) Publish(exchange string, payload interface{}) error {
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        body,
+			Headers: amqp.Table{
+				"correlation_id": event.Metadata.CorrelationID,
+			},
 		})
 	if err != nil {
 		return err
