@@ -1,7 +1,9 @@
 # amqp-go
 
 
-// TODO
+## TODOs
+
+### Publisher
 
 - [ ] support multiple concurrent amqp channels
 - [ ] add logging and metrics
