@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	amqp_go "github.com/GodwinJacobR/go-amqp"
+	go_amqp "github.com/GodwinJacobR/go-amqp"
 	"github.com/GodwinJacobR/go-amqp/internal"
 	"github.com/GodwinJacobR/go-amqp/internal/tracing"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -58,7 +58,7 @@ func NewPublisher(amqpUrl, queueName string, logger internal.Logger, tracer trac
 	}, nil
 }
 
-func (p *Publisher) Publish(ctx context.Context, exchange string, event amqp_go.Event) error {
+func (p *Publisher) Publish(ctx context.Context, exchange string, event go_amqp.Event) error {
 	ctx, span := p.tracer.Start(
 		ctx,
 		fmt.Sprintf("%s %s", exchange, "PublishEvent"),
@@ -96,7 +96,7 @@ func (p *Publisher) Publish(ctx context.Context, exchange string, event amqp_go.
 		return err
 	}
 
-	amqp_go.EventPublishSucceeded(exchange, event.EventName)
+	go_amqp.EventPublishSucceeded(exchange, event.EventName)
 	return nil
 }
 
@@ -111,6 +111,6 @@ func (p *Publisher) Close() error {
 
 func handlePublishError(err error, span trace.Span, exchange, eventName string) {
 	span.RecordError(err)
-	amqp_go.EventPublishFailed(exchange, eventName)
+	go_amqp.EventPublishFailed(exchange, eventName)
 
 }

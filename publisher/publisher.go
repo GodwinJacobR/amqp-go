@@ -3,14 +3,14 @@ package amqppublisher
 import (
 	"context"
 
-	amqp_go "github.com/GodwinJacobR/go-amqp"
+	go_amqp "github.com/GodwinJacobR/go-amqp"
 	"github.com/GodwinJacobR/go-amqp/internal"
 	amqp_publisher "github.com/GodwinJacobR/go-amqp/internal/publisher"
 	"go.opentelemetry.io/otel"
 )
 
 type publisher interface {
-	Publish(ctx context.Context, exchange string, payload amqp_go.Event) error
+	Publish(ctx context.Context, exchange string, payload go_amqp.Event) error
 	Close() error
 }
 
@@ -22,7 +22,7 @@ type Publisher struct {
 // NewPublisher creates a new Publisher instance
 func NewPublisher(amqpURL string, logger internal.Logger, queueName string, options ...Option) (*Publisher, error) {
 	config := publisherConfig{
-		tracer: otel.Tracer("amqp-go"),
+		tracer: otel.Tracer("go-amqp"),
 	}
 	for _, o := range options {
 		o(&config)
@@ -38,8 +38,8 @@ func NewPublisher(amqpURL string, logger internal.Logger, queueName string, opti
 }
 
 // Publish sends a message to the RabbitMQ queue
-func (p *Publisher) Publish(ctx context.Context, exchange, eventName string, payload any, opts ...amqp_go.EventOption) error {
-	event := amqp_go.NewEvent(ctx, payload, eventName, opts...)
+func (p *Publisher) Publish(ctx context.Context, exchange, eventName string, payload any, opts ...go_amqp.EventOption) error {
+	event := go_amqp.NewEvent(ctx, payload, eventName, opts...)
 
 	return p.inner.Publish(ctx, exchange, event)
 }

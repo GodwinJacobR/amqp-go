@@ -1,4 +1,4 @@
-package amqp_go
+package go_amqp
 
 import (
 	"github.com/prometheus/client_golang/prometheus"

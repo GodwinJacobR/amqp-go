@@ -1,4 +1,4 @@
-# amqp-go
+# go-amqp
 
 
 ## TODOs
