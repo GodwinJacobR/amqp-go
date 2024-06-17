@@ -6,7 +6,7 @@
 ### Publisher
 
 - [ ] support multiple concurrent amqp channels
-- [ ] add logging and metrics
+- [ ] move logging and metrics to internal
 - [ ] add error handling
 - [x] correlation ID to track messages
 - [x] add options pattern for the event payload
