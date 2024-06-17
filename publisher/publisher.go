@@ -8,7 +8,7 @@ import (
 )
 
 type publisher interface {
-	Publish(exchange string, payload amqp_go.Event) error
+	Publish(ctx context.Context, exchange string, payload amqp_go.Event) error
 	Close() error
 }
 
@@ -34,8 +34,7 @@ func NewPublisher(amqpURL, queueName string) (*Publisher, error) {
 func (p *Publisher) Publish(ctx context.Context, exchange, eventName string, payload any, opts ...amqp_go.EventOption) error {
 	event := amqp_go.NewEvent(ctx, payload, eventName, opts...)
 
-	return p.inner.Publish(exchange, event)
-	// TODO move this to internal
+	return p.inner.Publish(ctx, exchange, event)
 }
 
 // Close cleans up the RabbitMQ connection and channel

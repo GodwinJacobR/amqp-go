@@ -1,6 +1,7 @@
 package amqp_publisher
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -45,23 +46,25 @@ func NewPublisher(amqpURL, queueName string) (*Publisher, error) {
 	return &Publisher{conn: conn, ch: ch, q: q}, nil
 }
 
-func (p *Publisher) Publish(exchange string, event amqp_go.Event) error {
+func (p *Publisher) Publish(ctx context.Context, exchange string, event amqp_go.Event) error {
 	body, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("marshal message, err; %w", err)
 	}
 
-	err = p.ch.Publish(
+	err = p.ch.PublishWithContext(
+		ctx,
 		exchange,
 		p.q.Name, // routing key
 		false,    // mandatory
 		false,    // immediate
 		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        body,
-			Headers: amqp.Table{
-				"correlation_id": event.Metadata.CorrelationID,
-			},
+			Headers:       amqp.Table{"correlation_id": event.Metadata.CorrelationID},
+			ContentType:   "application/json",
+			CorrelationId: event.Metadata.CorrelationID,
+			MessageId:     event.Metadata.ID,
+			Timestamp:     event.Metadata.Timestamp,
+			Body:          body,
 		})
 	if err != nil {
 		return err
