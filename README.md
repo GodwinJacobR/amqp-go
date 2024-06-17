@@ -1,6 +1,10 @@
 # go-amqp
 
 
+This is a Go package to publish / consume AMQP events
+It is still under development
+
+
 ## TODOs
 
 ### Publisher
@@ -14,4 +18,3 @@
 ### Publisher
 
     WIP
-    
