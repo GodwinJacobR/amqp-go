@@ -10,3 +10,7 @@
 - [ ] add error handling
 - [x] correlation ID to track messages
 - [x] add options pattern for the event payload
+
+### Publisher
+
+    WIP
