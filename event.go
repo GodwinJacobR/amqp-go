@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/GodwinJacobR/amqp-go/correlation"
+	"github.com/GodwinJacobR/go-amqp/correlation"
 	"github.com/google/uuid"
 )
 

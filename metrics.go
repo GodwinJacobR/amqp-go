@@ -27,11 +27,11 @@ var (
 	)
 )
 
-func EventPublishSucceeded(exchange string, eventName string) {
+func EventPublishSucceeded(exchange, eventName string) {
 	eventPublishSuccessCounter.WithLabelValues(exchange, eventName).Inc()
 }
 
-func EventPublishFailed(exchange string, eventName string) {
+func EventPublishFailed(exchange, eventName string) {
 	eventPublishFailedCounter.WithLabelValues(exchange, eventName).Inc()
 }
 
