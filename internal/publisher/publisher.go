@@ -74,45 +74,13 @@ func (p *Publisher) Publish(ctx context.Context, exchange string, event go_amqp.
 	)
 	defer span.End()
 
-	body, err := json.Marshal(event)
+	err := p.publish(ctx, event, span, exchange)
 	if err != nil {
 		handlePublishError(err, span, exchange, event.EventName, nil)
 		return err
 	}
 
-	headers := tracing.InjectToHeaders(ctx)
-	headers["correlation_id"] = event.Metadata.CorrelationID
-
-	err = p.ch.PublishWithContext(
-		ctx,
-		exchange,
-		p.queue.Name, // routing key
-		false,        // mandatory
-		false,        // immediate
-		amqp.Publishing{
-			Headers:       headers,
-			ContentType:   "application/json",
-			CorrelationId: event.Metadata.CorrelationID,
-			MessageId:     event.Metadata.ID,
-			Timestamp:     event.Metadata.Timestamp,
-			Body:          body,
-		})
-	if err != nil {
-		handlePublishError(err, span, exchange, event.EventName, nil)
-		return err
-	}
-
-	select {
-	case confirm := <-*p.confirmCh:
-		if !confirm.Ack {
-			handlePublishError(errors.New("message not acknowledged by RabbitMQ"), span, exchange, event.EventName, nil)
-			return err
-		}
-		handlePublishSuccess(exchange, event.EventName, nil)
-	case <-time.After(5 * time.Second): // Timeout after 5 seconds
-		handlePublishError(errors.New("timeout waiting for publisher confirmation"), span, exchange, event.EventName, nil)
-		return err
-	}
+	handlePublishSuccess(exchange, event.EventName, nil)
 	return nil
 }
 
@@ -122,7 +90,6 @@ func (p *Publisher) PublishWithNotificationBack(ctx context.Context, exchange st
 	}
 
 	go func() {
-
 		ctx, span := p.tracer.Start(
 			ctx,
 			fmt.Sprintf("%s %s", exchange, "PublishEvent"),
@@ -132,29 +99,7 @@ func (p *Publisher) PublishWithNotificationBack(ctx context.Context, exchange st
 		)
 		defer span.End()
 
-		body, err := json.Marshal(event)
-		if err != nil {
-			handlePublishError(err, span, exchange, event.EventName, notifyCh)
-			return
-		}
-
-		headers := tracing.InjectToHeaders(ctx)
-		headers["correlation_id"] = event.Metadata.CorrelationID
-
-		err = p.ch.PublishWithContext(
-			ctx,
-			exchange,
-			p.queue.Name, // routing key
-			false,        // mandatory
-			false,        // immediate
-			amqp.Publishing{
-				Headers:       headers,
-				ContentType:   "application/json",
-				CorrelationId: event.Metadata.CorrelationID,
-				MessageId:     event.Metadata.ID,
-				Timestamp:     event.Metadata.Timestamp,
-				Body:          body,
-			})
+		err := p.publish(ctx, event, span, exchange)
 		if err != nil {
 			handlePublishError(err, span, exchange, event.EventName, notifyCh)
 			return
@@ -181,6 +126,37 @@ func (p *Publisher) Close() error {
 		p.ch.Close(),
 		p.conn.Close(),
 	)
+}
+
+func (p *Publisher) publish(ctx context.Context, event go_amqp.Event, span trace.Span, exchange string) error {
+	body, err := json.Marshal(event)
+	if err != nil {
+		handlePublishError(err, span, exchange, event.EventName, nil)
+		return err
+	}
+
+	headers := tracing.InjectToHeaders(ctx)
+	headers["correlation_id"] = event.Metadata.CorrelationID
+
+	err = p.ch.PublishWithContext(
+		ctx,
+		exchange,
+		p.queue.Name,
+		false,
+		false,
+		amqp.Publishing{
+			Headers:       headers,
+			ContentType:   "application/json",
+			CorrelationId: event.Metadata.CorrelationID,
+			MessageId:     event.Metadata.ID,
+			Timestamp:     event.Metadata.Timestamp,
+			Body:          body,
+		})
+	if err != nil {
+		handlePublishError(err, span, exchange, event.EventName, nil)
+		return err
+	}
+	return nil
 }
 
 func handlePublishError(err error, span trace.Span, exchange, eventName string, notifyCh chan<- error) {
